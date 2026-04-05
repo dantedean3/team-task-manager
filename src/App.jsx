@@ -9,6 +9,7 @@ import TaskList from './components/TaskList'
 import Toast from './components/Toast'
 
 function App() {
+  const [isLogin, setIsLogin] = useState(true)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -70,6 +71,40 @@ function App() {
     setToast({ text, type })
   }
 
+  async function ensureProfileExists(user) {
+    if (!user) return false
+
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error(fetchError)
+      showToast(fetchError.message, 'error')
+      return false
+    }
+
+    if (existingProfile) return true
+
+    const { error: insertError } = await supabase.from('profiles').insert([
+      {
+        id: user.id,
+        full_name: user.user_metadata?.full_name || fullName || '',
+        role: 'user',
+      },
+    ])
+
+    if (insertError) {
+      console.error(insertError)
+      showToast(insertError.message, 'error')
+      return false
+    }
+
+    return true
+  }
+
   async function fetchProfile(userId) {
     const { data, error } = await supabase
       .from('profiles')
@@ -88,9 +123,20 @@ function App() {
   async function fetchTasks() {
     setLoadingTasks(true)
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setTasks([])
+      setLoadingTasks(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from('tasks')
       .select('*')
+      .eq('created_by', user.id)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -107,6 +153,11 @@ function App() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName || '',
+        },
+      },
     })
 
     if (error) {
@@ -114,36 +165,32 @@ function App() {
       return
     }
 
-    const user = data.user
-
-    if (user) {
-      const { error: profileError } = await supabase.from('profiles').upsert([
-        {
-          id: user.id,
-          full_name: fullName || '',
-          role: 'user',
-        },
-      ])
-
-      if (profileError) {
-        console.error(profileError)
-      }
+    if (data.user) {
+      const ok = await ensureProfileExists(data.user)
+      if (!ok) return
     }
 
     showToast('Account created successfully.', 'success')
+    setIsLogin(true)
   }
 
   async function handleSignIn() {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
       showToast(error.message, 'error')
-    } else {
-      showToast('Logged in successfully.', 'success')
+      return
     }
+
+    if (data.user) {
+      const ok = await ensureProfileExists(data.user)
+      if (!ok) return
+    }
+
+    showToast('Logged in successfully.', 'success')
   }
 
   async function handleSignOut() {
@@ -195,6 +242,9 @@ function App() {
       showToast('No user found.', 'error')
       return
     }
+
+    const ok = await ensureProfileExists(user)
+    if (!ok) return
 
     if (!taskTitle.trim()) {
       showToast('Task title is required.', 'error')
@@ -477,6 +527,8 @@ function App() {
         {!session ? (
           <div className="mt-8">
             <AuthForm
+              isLogin={isLogin}
+              setIsLogin={setIsLogin}
               fullName={fullName}
               setFullName={setFullName}
               email={email}
