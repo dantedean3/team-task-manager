@@ -19,3 +19,32 @@ body {
 html.light body {
   background: #f8fafc;
 }
+
+.light .light\:border-slate-200 {
+  border-color: rgba(148, 163, 184, 0.75) !important;
+}
+
+.light .light\:bg-white\/85 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.light .light\:bg-slate-50 {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+.light .light\:shadow-slate-200\/60,
+.light .light\:shadow-slate-200\/70 {
+  box-shadow: 0 20px 45px rgba(100, 116, 139, 0.2) !important;
+}
+
+.light input,
+.light select,
+.light textarea {
+  border-color: rgba(100, 116, 139, 0.55) !important;
+}
+
+.light input:focus,
+.light select:focus,
+.light textarea:focus {
+  border-color: rgba(8, 145, 178, 0.85) !important;
+}

@@ -979,7 +979,7 @@ return (
     <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[120px] light:bg-cyan-300/30" />
     <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-violet-500/10 blur-[120px] light:bg-violet-300/30" />
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.06),_transparent_60%)] light:bg-[radial-gradient(circle_at_center,_rgba(14,165,233,0.14),_transparent_60%)]" />
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] light:bg-[linear-gradient(rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.06)_1px,transparent_1px)]" />
+    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] light:bg-[linear-gradient(rgba(15,23,42,0.11)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.11)_1px,transparent_1px)]" />
 
     <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <Header
