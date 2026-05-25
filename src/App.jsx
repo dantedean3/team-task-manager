@@ -7,6 +7,7 @@ import TaskForm from './components/TaskForm'
 import TaskFilters from './components/TaskFilters'
 import TaskList from './components/TaskList'
 import Toast from './components/Toast'
+import ReminderPanel from './components/ReminderPanel'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
 import ActivityFeed from './components/ActivityFeed'
 import KanbanBoard from './components/KanbanBoard'
@@ -779,7 +780,7 @@ return (
             />
 
             <AnalyticsDashboard tasks={tasks} />
-
+            <ReminderPanel tasks={tasks} />
             <TaskForm
               editingTaskId={editingTaskId}
               taskTitle={taskTitle}
@@ -830,7 +831,10 @@ return (
                     </button>
 
                     <button
-                      onClick={() => setViewMode('board')}
+                      onClick={() => {
+                        setFilter('all')
+                        setViewMode('board')
+                      }}
                       className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
                         viewMode === 'board'
                           ? 'bg-cyan-400 text-slate-950'
@@ -913,6 +917,7 @@ return (
             ) : viewMode === 'board' ? (
               <KanbanBoard
                 tasks={filteredTasks}
+                attachments={attachments}
                 changeTaskStatus={changeTaskStatus}
                 startEditingTask={startEditingTask}
                 deleteTask={deleteTask}
