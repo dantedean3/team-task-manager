@@ -3,7 +3,8 @@ import KanbanTaskCard from './KanbanTaskCard'
 
 function KanbanColumn({
   column,
-  tasks,
+  tasks = [],
+  attachments = [],
   startEditingTask,
   deleteTask,
   getPriorityClasses,
@@ -48,6 +49,7 @@ function KanbanColumn({
                 key={task.id}
                 task={task}
                 index={index}
+                attachments={attachments}
                 startEditingTask={startEditingTask}
                 deleteTask={deleteTask}
                 getPriorityClasses={getPriorityClasses}

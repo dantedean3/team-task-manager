@@ -2,7 +2,8 @@ import { DragDropContext } from '@hello-pangea/dnd'
 import KanbanColumn from './KanbanColumn'
 
 function KanbanBoard({
-  tasks,
+  tasks = [],
+  attachments = [],
   changeTaskStatus,
   startEditingTask,
   deleteTask,
@@ -52,26 +53,33 @@ function KanbanBoard({
   }
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid gap-4 xl:grid-cols-3">
-        {columns.map((column) => {
-          const columnTasks = tasks.filter((task) => task.status === column.id)
-
-          return (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              tasks={columnTasks}
-              startEditingTask={startEditingTask}
-              deleteTask={deleteTask}
-              getPriorityClasses={getPriorityClasses}
-              getStatusClasses={getStatusClasses}
-              getDueDisplay={getDueDisplay}
-            />
-          )
-        })}
+    <div>
+      <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100 light:border-cyan-200 light:bg-cyan-50 light:text-cyan-800">
+        Drag cards between columns to update task status. Board view shows all tasks.
       </div>
-    </DragDropContext>
+
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid gap-4 xl:grid-cols-3">
+          {columns.map((column) => {
+            const columnTasks = tasks.filter((task) => task.status === column.id)
+
+            return (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                tasks={columnTasks}
+                attachments={attachments}
+                startEditingTask={startEditingTask}
+                deleteTask={deleteTask}
+                getPriorityClasses={getPriorityClasses}
+                getStatusClasses={getStatusClasses}
+                getDueDisplay={getDueDisplay}
+              />
+            )
+          })}
+        </div>
+      </DragDropContext>
+    </div>
   )
 }
 

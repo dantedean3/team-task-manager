@@ -4,6 +4,7 @@ import { Draggable } from '@hello-pangea/dnd'
 function KanbanTaskCard({
   task,
   index,
+  attachments = [],
   startEditingTask,
   deleteTask,
   getPriorityClasses,
@@ -11,6 +12,10 @@ function KanbanTaskCard({
   getDueDisplay,
 }) {
   const due = getDueDisplay(task.due_at, task.is_complete)
+
+  const attachmentCount = attachments.filter(
+    (attachment) => String(attachment.task_id) === String(task.id)
+  ).length
 
   function CardContent({ provided, snapshot }) {
     return (
@@ -48,6 +53,12 @@ function KanbanTaskCard({
           >
             {(task.priority || 'medium').toUpperCase()}
           </span>
+
+          {attachmentCount > 0 && (
+            <span className="rounded-full bg-slate-700 px-2.5 py-1 text-[11px] font-semibold text-slate-200 light:bg-slate-100 light:text-slate-700">
+              {attachmentCount} file{attachmentCount === 1 ? '' : 's'}
+            </span>
+          )}
 
           {due.badge && (
             <span
