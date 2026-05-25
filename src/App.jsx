@@ -7,6 +7,8 @@ import TaskForm from './components/TaskForm'
 import TaskFilters from './components/TaskFilters'
 import TaskList from './components/TaskList'
 import Toast from './components/Toast'
+import AnalyticsDashboard from './components/AnalyticsDashboard'
+import ActivityFeed from './components/ActivityFeed'
 
 function App() {
   const [isLogin, setIsLogin] = useState(true)
@@ -17,6 +19,7 @@ function App() {
   const [profile, setProfile] = useState(null)
   const [toast, setToast] = useState(null)
   const [tasks, setTasks] = useState([])
+  const [activityLogs, setActivityLogs] = useState([])
 
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDescription, setTaskDescription] = useState('')
@@ -55,9 +58,11 @@ function App() {
     if (session?.user?.id) {
       fetchProfile(session.user.id)
       fetchTasks()
+      fetchActivityLogs()
     } else {
       setTasks([])
       setProfile(null)
+      setActivityLogs([])
     }
   }, [session])
 
@@ -147,6 +152,54 @@ function App() {
     }
 
     setLoadingTasks(false)
+  }
+
+  async function fetchActivityLogs() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setActivityLogs([])
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(8)
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    setActivityLogs(data || [])
+  }
+
+  async function logActivity(action, taskId = null) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const { error } = await supabase.from('activity_logs').insert([
+      {
+        user_id: user.id,
+        task_id: taskId,
+        action,
+      },
+    ])
+
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    fetchActivityLogs()
   }
 
   async function handleSignUp() {
@@ -251,17 +304,21 @@ function App() {
       return
     }
 
-    const { error } = await supabase.from('tasks').insert([
-      {
-        title: taskTitle,
-        description: taskDescription,
-        due_at: taskDueAt || null,
-        priority: taskPriority,
-        status: taskStatus,
-        is_complete: taskStatus === 'done',
-        created_by: user.id,
-      },
-    ])
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([
+        {
+          title: taskTitle,
+          description: taskDescription,
+          due_at: taskDueAt || null,
+          priority: taskPriority,
+          status: taskStatus,
+          is_complete: taskStatus === 'done',
+          created_by: user.id,
+        },
+      ])
+      .select()
+      .single()
 
     if (error) {
       console.error(error)
@@ -269,6 +326,7 @@ function App() {
     } else {
       resetForm()
       fetchTasks()
+      logActivity(`Created task: ${data.title}`, data.id)
       showToast('Task created.', 'success')
     }
   }
@@ -284,7 +342,7 @@ function App() {
       return
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('tasks')
       .update({
         title: taskTitle,
@@ -295,6 +353,8 @@ function App() {
         is_complete: taskStatus === 'done',
       })
       .eq('id', editingTaskId)
+      .select()
+      .single()
 
     if (error) {
       console.error(error)
@@ -302,6 +362,7 @@ function App() {
     } else {
       resetForm()
       fetchTasks()
+      logActivity(`Updated task: ${data.title}`, data.id)
       showToast('Task updated.', 'success')
     }
   }
@@ -320,6 +381,7 @@ function App() {
       showToast(error.message, 'error')
     } else {
       fetchTasks()
+      logActivity(`Changed "${task.title}" to ${nextStatus.replace('_', ' ')}`, task.id)
       showToast('Task status updated.', 'success')
     }
   }
@@ -327,6 +389,12 @@ function App() {
   async function deleteTask(taskId) {
     const confirmed = window.confirm('Are you sure you want to delete this task?')
     if (!confirmed) return
+
+    const taskToDelete = tasks.find((task) => task.id === taskId)
+
+    if (taskToDelete) {
+      await logActivity(`Deleted task: ${taskToDelete.title}`, taskId)
+    }
 
     const { error } = await supabase.from('tasks').delete().eq('id', taskId)
 
@@ -364,6 +432,7 @@ function App() {
         resetForm()
       }
       fetchTasks()
+      logActivity(`Cleared ${completedIds.length} completed task(s)`)
       showToast('Completed tasks cleared.', 'success')
     }
   }
@@ -551,6 +620,8 @@ function App() {
                 completionRate={completionRate}
               />
 
+              <AnalyticsDashboard tasks={tasks} />
+
               <TaskForm
                 editingTaskId={editingTaskId}
                 taskTitle={taskTitle}
@@ -569,6 +640,8 @@ function App() {
                 handleSignOut={handleSignOut}
                 profile={profile}
               />
+
+              <ActivityFeed activityLogs={activityLogs} />
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-slate-900/75 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
