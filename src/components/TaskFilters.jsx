@@ -14,10 +14,10 @@ function TaskFilters({ filter, setFilter, counts }) {
         <button
           key={button.key}
           onClick={() => setFilter(button.key)}
-          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+          className={`rounded-xl px-3 py-2 text-xs font-semibold transition sm:px-4 sm:text-sm ${
             filter === button.key
               ? button.active
-              : 'border border-white/10 bg-slate-800/80 text-white hover:bg-slate-700'
+              : 'border border-white/10 bg-slate-800/80 text-white hover:bg-slate-700 light:border-slate-200 light:bg-white light:text-slate-700 light:hover:bg-slate-100'
           }`}
         >
           {button.label} ({button.count})

@@ -9,9 +9,15 @@ import TaskList from './components/TaskList'
 import Toast from './components/Toast'
 import AnalyticsDashboard from './components/AnalyticsDashboard'
 import ActivityFeed from './components/ActivityFeed'
+import KanbanBoard from './components/KanbanBoard'
 
 function App() {
   const [isLogin, setIsLogin] = useState(true)
+
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'dark'
+  })
+
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +38,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const [loadingTasks, setLoadingTasks] = useState(false)
+  const [viewMode, setViewMode] = useState('list')
 
   useEffect(() => {
     async function loadSession() {
@@ -53,6 +60,21 @@ function App() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+
+  useEffect(() => {
+    const root = document.documentElement
+
+    if (theme === 'light') {
+      root.classList.add('light')
+    } else {
+      root.classList.remove('light')
+    }
+
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -256,6 +278,7 @@ function App() {
       setFilter('all')
       setSearchTerm('')
       setSortBy('newest')
+      setViewMode('list')
       showToast('Logged out.', 'info')
     }
   }
@@ -581,155 +604,204 @@ function App() {
     return result
   }, [tasks, filter, searchTerm, sortBy])
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#020617] via-[#020617] to-[#020617]" />
-      <div className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[120px]" />
-      <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-violet-500/10 blur-[120px]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.06),_transparent_60%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+return (
+  <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100 light:bg-slate-50 light:text-slate-900">
+    <div className="absolute inset-0 bg-gradient-to-br from-[#020617] via-[#08111f] to-[#020617] light:from-slate-50 light:via-cyan-50 light:to-violet-50" />
+    <div className="absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[120px] light:bg-cyan-300/30" />
+    <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-violet-500/10 blur-[120px] light:bg-violet-300/30" />
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.06),_transparent_60%)] light:bg-[radial-gradient(circle_at_center,_rgba(14,165,233,0.14),_transparent_60%)]" />
+    <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] light:bg-[linear-gradient(rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.06)_1px,transparent_1px)]" />
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-10">
-        <Header session={session} profile={profile} />
-        <Toast toast={toast} onClose={() => setToast(null)} />
+    <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <Header session={session} profile={profile} theme={theme} setTheme={setTheme} />
+      <Toast toast={toast} onClose={() => setToast(null)} />
 
-        {!session ? (
-          <div className="mt-8">
-            <AuthForm
-              isLogin={isLogin}
-              setIsLogin={setIsLogin}
-              fullName={fullName}
-              setFullName={setFullName}
-              email={email}
-              password={password}
-              setEmail={setEmail}
-              setPassword={setPassword}
-              handleSignUp={handleSignUp}
-              handleSignIn={handleSignIn}
+      {!session ? (
+        <div className="mt-8">
+          <AuthForm
+            isLogin={isLogin}
+            setIsLogin={setIsLogin}
+            fullName={fullName}
+            setFullName={setFullName}
+            email={email}
+            password={password}
+            setEmail={setEmail}
+            setPassword={setPassword}
+            handleSignUp={handleSignUp}
+            handleSignIn={handleSignIn}
+          />
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_1.6fr]">
+          <div className="space-y-6">
+            <StatsCards
+              totalCount={totalCount}
+              completedCount={completedCount}
+              inProgressCount={inProgressCount}
+              highPriorityCount={highPriorityCount}
+              overdueCount={overdueCount}
+              completionRate={completionRate}
             />
+
+            <AnalyticsDashboard tasks={tasks} />
+
+            <TaskForm
+              editingTaskId={editingTaskId}
+              taskTitle={taskTitle}
+              setTaskTitle={setTaskTitle}
+              taskDescription={taskDescription}
+              setTaskDescription={setTaskDescription}
+              taskDueAt={taskDueAt}
+              setTaskDueAt={setTaskDueAt}
+              taskPriority={taskPriority}
+              setTaskPriority={setTaskPriority}
+              taskStatus={taskStatus}
+              setTaskStatus={setTaskStatus}
+              createTask={createTask}
+              updateTask={updateTask}
+              resetForm={resetForm}
+              handleSignOut={handleSignOut}
+              profile={profile}
+            />
+
+            <ActivityFeed activityLogs={activityLogs} />
           </div>
-        ) : (
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_1.6fr]">
-            <div className="space-y-6">
-              <StatsCards
-                totalCount={totalCount}
-                completedCount={completedCount}
-                inProgressCount={inProgressCount}
-                highPriorityCount={highPriorityCount}
-                overdueCount={overdueCount}
-                completionRate={completionRate}
-              />
 
-              <AnalyticsDashboard tasks={tasks} />
+          <div className="rounded-[28px] border border-white/10 bg-slate-900/75 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl light:border-slate-200 light:bg-white/85 light:shadow-slate-200/70 sm:p-6">
+            <div className="mb-6 space-y-4">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-white light:text-slate-950">
+                    Your Tasks
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-400 light:text-slate-500">
+                    Search, filter, sort, and manage your workflow.
+                  </p>
+                </div>
 
-              <TaskForm
-                editingTaskId={editingTaskId}
-                taskTitle={taskTitle}
-                setTaskTitle={setTaskTitle}
-                taskDescription={taskDescription}
-                setTaskDescription={setTaskDescription}
-                taskDueAt={taskDueAt}
-                setTaskDueAt={setTaskDueAt}
-                taskPriority={taskPriority}
-                setTaskPriority={setTaskPriority}
-                taskStatus={taskStatus}
-                setTaskStatus={setTaskStatus}
-                createTask={createTask}
-                updateTask={updateTask}
-                resetForm={resetForm}
-                handleSignOut={handleSignOut}
-                profile={profile}
-              />
+                <div className="flex flex-col gap-3">
+                  <div className="flex rounded-2xl border border-white/10 bg-slate-950/70 p-1 light:border-slate-200 light:bg-slate-100">
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        viewMode === 'list'
+                          ? 'bg-cyan-400 text-slate-950'
+                          : 'text-slate-300 hover:bg-slate-800 light:text-slate-600 light:hover:bg-white'
+                      }`}
+                    >
+                      List
+                    </button>
 
-              <ActivityFeed activityLogs={activityLogs} />
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-slate-900/75 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl">
-              <div className="mb-6 space-y-4">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white">Your Tasks</h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Search, filter, sort, and manage your workflow.
-                    </p>
+                    <button
+                      onClick={() => setViewMode('board')}
+                      className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        viewMode === 'board'
+                          ? 'bg-cyan-400 text-slate-950'
+                          : 'text-slate-300 hover:bg-slate-800 light:text-slate-600 light:hover:bg-white'
+                      }`}
+                    >
+                      Board
+                    </button>
                   </div>
 
                   <TaskFilters filter={filter} setFilter={setFilter} counts={counts} />
                 </div>
-
-                <div className="grid gap-3 xl:grid-cols-[1.2fr_0.9fr_auto_auto]">
-                  <input
-                    type="text"
-                    placeholder="Search tasks..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-                  />
-
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
-                  >
-                    <option value="newest">Sort: Newest</option>
-                    <option value="oldest">Sort: Oldest</option>
-                    <option value="dueSoon">Sort: Due Soon</option>
-                    <option value="priority">Sort: Priority</option>
-                    <option value="alphabetical">Sort: A-Z</option>
-                  </select>
-
-                  <button
-                    onClick={fetchTasks}
-                    className="rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
-                  >
-                    Refresh
-                  </button>
-
-                  <button
-                    onClick={clearCompletedTasks}
-                    className="rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-400"
-                  >
-                    Clear Completed
-                  </button>
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-sm text-slate-400">
-                  <span>
-                    Showing <span className="font-semibold text-white">{filteredTasks.length}</span>{' '}
-                    task{filteredTasks.length === 1 ? '' : 's'}
-                  </span>
-                  <span>
-                    Search: <span className="font-semibold text-white">{searchTerm || 'None'}</span>
-                  </span>
-                  <span>
-                    Sort: <span className="font-semibold text-white">{sortBy}</span>
-                  </span>
-                </div>
               </div>
 
-              {loadingTasks ? (
-                <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/60 p-10 text-center">
-                  <p className="text-lg font-medium text-slate-200">Loading tasks...</p>
-                </div>
-              ) : (
-                <TaskList
-                  filteredTasks={filteredTasks}
-                  startEditingTask={startEditingTask}
-                  changeTaskStatus={changeTaskStatus}
-                  deleteTask={deleteTask}
-                  getPriorityClasses={getPriorityClasses}
-                  getStatusClasses={getStatusClasses}
-                  getDueDisplay={getDueDisplay}
-                  filter={filter}
-                  searchTerm={searchTerm}
+              <div className="grid gap-3 xl:grid-cols-[1.2fr_0.9fr_auto_auto]">
+                <input
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 light:border-slate-200 light:bg-white light:text-slate-900"
                 />
-              )}
+
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 light:border-slate-200 light:bg-white light:text-slate-900"
+                >
+                  <option value="newest">Sort: Newest</option>
+                  <option value="oldest">Sort: Oldest</option>
+                  <option value="dueSoon">Sort: Due Soon</option>
+                  <option value="priority">Sort: Priority</option>
+                  <option value="alphabetical">Sort: A-Z</option>
+                </select>
+
+                <button
+                  onClick={fetchTasks}
+                  className="rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+                >
+                  Refresh
+                </button>
+
+                <button
+                  onClick={clearCompletedTasks}
+                  className="rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-400"
+                >
+                  Clear Completed
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-4 text-sm text-slate-400">
+                <span>
+                  Showing{' '}
+                  <span className="font-semibold text-white light:text-slate-950">
+                    {filteredTasks.length}
+                  </span>{' '}
+                  task{filteredTasks.length === 1 ? '' : 's'}
+                </span>
+                <span>
+                  Search:{' '}
+                  <span className="font-semibold text-white light:text-slate-950">
+                    {searchTerm || 'None'}
+                  </span>
+                </span>
+                <span>
+                  Sort:{' '}
+                  <span className="font-semibold text-white light:text-slate-950">
+                    {sortBy}
+                  </span>
+                </span>
+              </div>
             </div>
+
+            {loadingTasks ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/60 p-10 text-center light:border-slate-200 light:bg-slate-50">
+                <p className="text-lg font-medium text-slate-200 light:text-slate-700">
+                  Loading tasks...
+                </p>
+              </div>
+            ) : viewMode === 'board' ? (
+              <KanbanBoard
+                tasks={filteredTasks}
+                changeTaskStatus={changeTaskStatus}
+                startEditingTask={startEditingTask}
+                deleteTask={deleteTask}
+                getPriorityClasses={getPriorityClasses}
+                getStatusClasses={getStatusClasses}
+                getDueDisplay={getDueDisplay}
+              />
+            ) : (
+              <TaskList
+                filteredTasks={filteredTasks}
+                startEditingTask={startEditingTask}
+                changeTaskStatus={changeTaskStatus}
+                deleteTask={deleteTask}
+                getPriorityClasses={getPriorityClasses}
+                getStatusClasses={getStatusClasses}
+                getDueDisplay={getDueDisplay}
+                filter={filter}
+                searchTerm={searchTerm}
+              />
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
-  )
+  </div>
+)
 }
 
 export default App
