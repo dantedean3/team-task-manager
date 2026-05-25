@@ -10,23 +10,25 @@ function TaskList({
   getDueDisplay,
   filter,
   searchTerm,
+  attachments,
+  uploadAttachment,
+  openAttachment,
+  deleteAttachment,
 }) {
   if (filteredTasks.length === 0) {
-    let title = 'No tasks found'
-    let subtitle = 'Create a task to get started.'
-
-    if (searchTerm.trim()) {
-      title = 'No matching tasks'
-      subtitle = `Nothing matched "${searchTerm}".`
-    } else if (filter !== 'all') {
-      title = 'Nothing in this view'
-      subtitle = 'Try another filter or create a new task.'
-    }
-
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/60 p-10 text-center">
-        <p className="text-lg font-medium text-slate-200">{title}</p>
-        <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
+      <div className="rounded-2xl border border-dashed border-white/10 bg-slate-950/60 p-10 text-center light:border-slate-200 light:bg-slate-50">
+        <h3 className="text-lg font-semibold text-slate-200 light:text-slate-800">
+          No tasks found
+        </h3>
+
+        <p className="mt-2 text-sm text-slate-400 light:text-slate-500">
+          {searchTerm
+            ? `No tasks match "${searchTerm}".`
+            : filter === 'all'
+            ? 'Create your first task to get started.'
+            : 'No tasks match this filter.'}
+        </p>
       </div>
     )
   }
@@ -43,6 +45,10 @@ function TaskList({
           getPriorityClasses={getPriorityClasses}
           getStatusClasses={getStatusClasses}
           getDueDisplay={getDueDisplay}
+          attachments={attachments}
+          uploadAttachment={uploadAttachment}
+          openAttachment={openAttachment}
+          deleteAttachment={deleteAttachment}
         />
       ))}
     </div>

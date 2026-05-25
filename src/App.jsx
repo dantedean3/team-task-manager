@@ -26,12 +26,14 @@ function App() {
   const [toast, setToast] = useState(null)
   const [tasks, setTasks] = useState([])
   const [activityLogs, setActivityLogs] = useState([])
+  const [attachments, setAttachments] = useState([])
 
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDescription, setTaskDescription] = useState('')
   const [taskDueAt, setTaskDueAt] = useState('')
   const [taskPriority, setTaskPriority] = useState('medium')
   const [taskStatus, setTaskStatus] = useState('todo')
+  const [pendingAttachment, setPendingAttachment] = useState(null)
 
   const [filter, setFilter] = useState('all')
   const [editingTaskId, setEditingTaskId] = useState(null)
@@ -81,10 +83,12 @@ function App() {
       fetchProfile(session.user.id)
       fetchTasks()
       fetchActivityLogs()
+      fetchAttachments()
     } else {
       setTasks([])
       setProfile(null)
       setActivityLogs([])
+      setAttachments([])
     }
   }, [session])
 
@@ -176,6 +180,8 @@ function App() {
     setLoadingTasks(false)
   }
 
+
+
   async function fetchActivityLogs() {
     const {
       data: { user },
@@ -201,6 +207,32 @@ function App() {
     setActivityLogs(data || [])
   }
 
+
+  async function fetchAttachments() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      setAttachments([])
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('task_attachments')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      showToast(error.message, 'error')
+      return
+    }
+
+    setAttachments(data || [])
+  }
+
   async function logActivity(action, taskId = null) {
     const {
       data: { user },
@@ -223,6 +255,99 @@ function App() {
 
     fetchActivityLogs()
   }
+
+
+  async function uploadAttachment(task, file) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      showToast('You must be logged in to upload files.', 'error')
+      return
+    }
+
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const filePath = `${user.id}/${task.id}/${Date.now()}-${safeFileName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('task-attachments')
+      .upload(filePath, file)
+
+    if (uploadError) {
+      console.error(uploadError)
+      showToast(uploadError.message, 'error')
+      return
+    }
+
+    const { error: dbError } = await supabase.from('task_attachments').insert([
+      {
+        task_id: task.id,
+        user_id: user.id,
+        file_name: file.name,
+        file_path: filePath,
+      },
+    ])
+
+    if (dbError) {
+      console.error(dbError)
+      showToast(dbError.message, 'error')
+      return
+    }
+
+    await fetchAttachments()
+    await logActivity(`Uploaded attachment to "${task.title}": ${file.name}`, task.id)
+    showToast('File uploaded.', 'success')
+  }
+
+  async function openAttachment(attachment) {
+    const { data, error } = await supabase.storage
+      .from('task-attachments')
+      .createSignedUrl(attachment.file_path, 60)
+
+    if (error) {
+      console.error(error)
+      showToast(error.message, 'error')
+      return
+    }
+
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
+
+  async function deleteAttachment(task, attachment) {
+    const confirmed = window.confirm(
+      `Delete "${attachment.file_name}" from this task?`
+    )
+
+    if (!confirmed) return
+
+    const { error: storageError } = await supabase.storage
+      .from('task-attachments')
+      .remove([attachment.file_path])
+
+    if (storageError) {
+      console.error(storageError)
+      showToast(storageError.message, 'error')
+      return
+    }
+
+    const { error: dbError } = await supabase
+      .from('task_attachments')
+      .delete()
+      .eq('id', attachment.id)
+
+    if (dbError) {
+      console.error(dbError)
+      showToast(dbError.message, 'error')
+      return
+    }
+
+    await fetchAttachments()
+    await logActivity(`Deleted attachment from "${task.title}": ${attachment.file_name}`, task.id)
+    showToast('Attachment deleted.', 'success')
+  }
+
 
   async function handleSignUp() {
     const { data, error } = await supabase.auth.signUp({
@@ -289,6 +414,7 @@ function App() {
     setTaskDueAt('')
     setTaskPriority('medium')
     setTaskStatus('todo')
+    setPendingAttachment(null)
     setEditingTaskId(null)
   }
 
@@ -347,10 +473,19 @@ function App() {
       console.error(error)
       showToast(error.message, 'error')
     } else {
+      if (pendingAttachment) {
+        await uploadAttachment(data, pendingAttachment)
+      }
+
       resetForm()
-      fetchTasks()
-      logActivity(`Created task: ${data.title}`, data.id)
-      showToast('Task created.', 'success')
+      await fetchTasks()
+      await fetchAttachments()
+      await logActivity(`Created task: ${data.title}`, data.id)
+
+      showToast(
+        pendingAttachment ? 'Task created with attachment.' : 'Task created.',
+        'success'
+      )
     }
   }
 
@@ -657,6 +792,8 @@ return (
               setTaskPriority={setTaskPriority}
               taskStatus={taskStatus}
               setTaskStatus={setTaskStatus}
+              pendingAttachment={pendingAttachment}
+              setPendingAttachment={setPendingAttachment}
               createTask={createTask}
               updateTask={updateTask}
               resetForm={resetForm}
@@ -794,6 +931,10 @@ return (
                 getDueDisplay={getDueDisplay}
                 filter={filter}
                 searchTerm={searchTerm}
+                attachments={attachments}
+                uploadAttachment={uploadAttachment}
+                openAttachment={openAttachment}
+                deleteAttachment={deleteAttachment}
               />
             )}
           </div>
