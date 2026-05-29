@@ -428,6 +428,11 @@ function App() {
     return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16)
   }
 
+  function toDatabaseDateTime(value) {
+    if (!value) return null
+    return new Date(value).toISOString()
+  }
+  
   function startEditingTask(task) {
     setEditingTaskId(task.id)
     setTaskTitle(task.title || '')
@@ -463,7 +468,7 @@ function App() {
         {
           title: taskTitle,
           description: taskDescription,
-          due_at: taskDueAt || null,
+          due_at: toDatabaseDateTime(taskDueAt),
           priority: taskPriority,
           status: taskStatus,
           is_complete: taskStatus === 'done',
@@ -509,7 +514,7 @@ function App() {
       .update({
         title: taskTitle,
         description: taskDescription,
-        due_at: taskDueAt || null,
+        due_at: toDatabaseDateTime(taskDueAt),
         priority: taskPriority,
         status: taskStatus,
         is_complete: taskStatus === 'done',
